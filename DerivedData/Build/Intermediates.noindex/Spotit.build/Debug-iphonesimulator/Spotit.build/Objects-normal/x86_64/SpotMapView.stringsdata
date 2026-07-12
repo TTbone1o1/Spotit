@@ -1,0 +1,24 @@
+{
+  "source": "/Users/abrahammay/Desktop/Spotit/Spotit/SpotMapView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Spotit",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 34
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tokyo  •  Kyoto  •  Osaka",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 36
+        }
+      }
+    ]
+  },
+  "version": 1
+}

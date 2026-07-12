@@ -1,0 +1,68 @@
+{
+  "" : {
+    "diagnostics" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spotit-master.dia",
+    "emit-module-dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spotit-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spotit-master-emit-module.dia",
+    "swift-dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spotit-master.swiftdeps"
+  },
+  "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  },
+  "/Users/abrahammay/Desktop/Spotit/Spotit/ContentView.swift" : {
+    "const-values" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/abrahammay/Desktop/Spotit/Spotit/SavedSpotsSheet.swift" : {
+    "const-values" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SavedSpotsSheet.swiftconstvalues",
+    "dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SavedSpotsSheet.d",
+    "diagnostics" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SavedSpotsSheet.dia",
+    "index-unit-output-path" : "/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SavedSpotsSheet.o",
+    "llvm-bc" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SavedSpotsSheet.bc",
+    "object" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SavedSpotsSheet.o",
+    "swift-dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SavedSpotsSheet.swiftdeps",
+    "swiftmodule" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SavedSpotsSheet~partial.swiftmodule"
+  },
+  "/Users/abrahammay/Desktop/Spotit/Spotit/Spot.swift" : {
+    "const-values" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spot.swiftconstvalues",
+    "dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spot.d",
+    "diagnostics" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spot.dia",
+    "index-unit-output-path" : "/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spot.o",
+    "llvm-bc" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spot.bc",
+    "object" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spot.o",
+    "swift-dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spot.swiftdeps",
+    "swiftmodule" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/Spot~partial.swiftmodule"
+  },
+  "/Users/abrahammay/Desktop/Spotit/Spotit/SpotMapView.swift" : {
+    "const-values" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotMapView.swiftconstvalues",
+    "dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotMapView.d",
+    "diagnostics" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotMapView.dia",
+    "index-unit-output-path" : "/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotMapView.o",
+    "llvm-bc" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotMapView.bc",
+    "object" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotMapView.o",
+    "swift-dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotMapView.swiftdeps",
+    "swiftmodule" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotMapView~partial.swiftmodule"
+  },
+  "/Users/abrahammay/Desktop/Spotit/Spotit/SpotitApp.swift" : {
+    "const-values" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotitApp.swiftconstvalues",
+    "dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotitApp.d",
+    "diagnostics" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotitApp.dia",
+    "index-unit-output-path" : "/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotitApp.o",
+    "llvm-bc" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotitApp.bc",
+    "object" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotitApp.o",
+    "swift-dependencies" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotitApp.swiftdeps",
+    "swiftmodule" : "/Users/abrahammay/Desktop/Spotit/DerivedData/Build/Intermediates.noindex/Spotit.build/Debug-iphonesimulator/Spotit.build/Objects-normal/arm64/SpotitApp~partial.swiftmodule"
+  }
+}
