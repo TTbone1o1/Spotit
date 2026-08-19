@@ -7,7 +7,7 @@
         "key": "Spotit",
         "location": {
           "startingColumn": 22,
-          "startingLine": 34
+          "startingLine": 36
         }
       },
       {
@@ -15,7 +15,31 @@
         "key": "Tokyo  •  Kyoto  •  Osaka",
         "location": {
           "startingColumn": 22,
-          "startingLine": 36
+          "startingLine": 38
+        }
+      },
+      {
+        "comment": "",
+        "key": "All Japan",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 57
+        }
+      },
+      {
+        "comment": "",
+        "key": "Simulated current location",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 191
+        }
+      },
+      {
+        "comment": "",
+        "key": "Drag to move your test location on the map",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 192
         }
       }
     ]

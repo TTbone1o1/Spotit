@@ -5,6 +5,91 @@
 	<key>logFormatVersion</key>
 	<integer>11</integer>
 	<key>logs</key>
-	<dict/>
+	<dict>
+		<key>2133E176-4162-4D31-ABC2-45D928B8847B</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>2133E176-4162-4D31-ABC2-45D928B8847B.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>W</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>8</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Spotit project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Spotit</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building project Spotit with scheme Spotit and configuration Debug</string>
+			<key>timeStartedRecording</key>
+			<real>805659263.25512004</real>
+			<key>timeStoppedRecording</key>
+			<real>805659264.76531196</real>
+			<key>title</key>
+			<string>Building project Spotit with scheme Spotit and configuration Debug</string>
+			<key>uniqueIdentifier</key>
+			<string>2133E176-4162-4D31-ABC2-45D928B8847B</string>
+		</dict>
+		<key>F29E8797-2EDD-448C-A075-593FC03D0585</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>F29E8797-2EDD-448C-A075-593FC03D0585.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>Spotit project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>Spotit</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building project Spotit with scheme Spotit and configuration Debug</string>
+			<key>timeStartedRecording</key>
+			<real>805759129.56159604</real>
+			<key>timeStoppedRecording</key>
+			<real>805759132.69328594</real>
+			<key>title</key>
+			<string>Building project Spotit with scheme Spotit and configuration Debug</string>
+			<key>uniqueIdentifier</key>
+			<string>F29E8797-2EDD-448C-A075-593FC03D0585</string>
+		</dict>
+	</dict>
 </dict>
 </plist>
