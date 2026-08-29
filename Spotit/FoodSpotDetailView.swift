@@ -5,10 +5,12 @@
 
 import MapKit
 import SwiftUI
+import UIKit
 
 struct FoodSpotImageView: View {
     let spot: FoodSpot
     var cornerRadius: CGFloat = 0
+    var snapshotSize = CGSize(width: 800, height: 500)
 
     var body: some View {
         Group {
@@ -18,20 +20,28 @@ struct FoodSpotImageView: View {
                     case .success(let image):
                         image.resizable().scaledToFill()
                     case .empty:
-                        ProgressView()
+                        loadingPlaceholder
                     case .failure:
-                        placeholder
+                        LookAroundPlaceImage(spot: spot, snapshotSize: snapshotSize)
                     @unknown default:
                         placeholder
                     }
                 }
             } else {
-                placeholder
+                LookAroundPlaceImage(spot: spot, snapshotSize: snapshotSize)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    private var loadingPlaceholder: some View {
+        ZStack {
+            placeholder
+            ProgressView()
+                .tint(.white)
+        }
     }
 
     private var placeholder: some View {
@@ -46,6 +56,85 @@ struct FoodSpotImageView: View {
                 .foregroundStyle(.white)
         }
     }
+}
+
+private struct LookAroundPlaceImage: View {
+    let spot: FoodSpot
+    let snapshotSize: CGSize
+
+    @State private var image: UIImage?
+    @State private var hasFinishedLoading = false
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else if hasFinishedLoading {
+                placeholder
+            } else {
+                ZStack {
+                    placeholder
+                    ProgressView()
+                        .tint(.white)
+                }
+            }
+        }
+        .task(id: cacheKey) {
+            await loadImage()
+        }
+    }
+
+    private var cacheKey: NSString {
+        "\(spot.id)-\(Int(snapshotSize.width))x\(Int(snapshotSize.height))" as NSString
+    }
+
+    @MainActor
+    private func loadImage() async {
+        if let cachedImage = LookAroundImageCache.images.object(forKey: cacheKey) {
+            image = cachedImage
+            hasFinishedLoading = true
+            return
+        }
+
+        defer { hasFinishedLoading = true }
+
+        do {
+            let request = MKLookAroundSceneRequest(coordinate: spot.location.coordinate)
+            guard let scene = try await request.scene else { return }
+
+            let options = MKLookAroundSnapshotter.Options()
+            options.size = snapshotSize
+
+            let snapshotter = MKLookAroundSnapshotter(scene: scene, options: options)
+            let snapshot = try await snapshotter.snapshot
+            guard !Task.isCancelled else { return }
+
+            LookAroundImageCache.images.setObject(snapshot.image, forKey: cacheKey)
+            image = snapshot.image
+        } catch {
+            // Some locations do not have Look Around coverage; use the category fallback there.
+        }
+    }
+
+    private var placeholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [.orange.opacity(0.92), .pink.opacity(0.78)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Image(systemName: spot.category.symbolName)
+                .font(.system(size: 32, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+    }
+}
+
+@MainActor
+private enum LookAroundImageCache {
+    static let images = NSCache<NSString, UIImage>()
 }
 
 struct FoodSpotDetailView: View {

@@ -466,8 +466,13 @@ private struct FoodRecommendationCard: View {
         ZStack(alignment: .topTrailing) {
             Button(action: select) {
                 HStack(spacing: 14) {
-                    FoodSpotImageView(spot: spot, cornerRadius: 14)
+                    FoodSpotImageView(
+                        spot: spot,
+                        snapshotSize: CGSize(width: 384, height: 448)
+                    )
                         .frame(width: 96, height: 112)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(spot.name)
