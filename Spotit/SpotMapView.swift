@@ -13,7 +13,8 @@ struct SpotMapView: View {
     @State private var showsRecommendations = false
     @State private var cameraPosition: MapCameraPosition = .region(Self.destinationsRegion)
     @State private var visibleRegion = Self.destinationsRegion
-    @State private var selectedRadius: RecommendationRadius = .superClose
+    @State private var selectedRadius: RecommendationRadius = .oneKilometer
+    @State private var selectedFoodSpot: FoodSpot?
     @StateObject private var locationProvider = LocationProvider(simulatesHarajuku: true)
     @StateObject private var nearbyFoodProvider = NearbyFoodProvider()
     @StateObject private var savedFoodStore = SavedFoodStore()
@@ -28,6 +29,10 @@ struct SpotMapView: View {
         return Self.destinations.min {
             $0.location.distance(from: location) < $1.location.distance(from: location)
         }?.name ?? "your location"
+    }
+
+    private var nearYouRecommendations: [RankedFoodSpot] {
+        nearbyFoodProvider.sections.first(where: { $0.kind == .nearYou })?.items ?? []
     }
 
     var body: some View {
@@ -104,6 +109,12 @@ struct SpotMapView: View {
                 nearbyFoodProvider.update(for: location, radiusMeters: radius.meters)
             }
         }
+        .sheet(item: $selectedFoodSpot) { spot in
+            FoodSpotDetailView(
+                spot: spot,
+                userLocation: locationProvider.location
+            )
+        }
     }
 
     private var rangeSelector: some View {
@@ -138,9 +149,9 @@ struct SpotMapView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Food near \(nearbyAreaName)")
+                    Text("Near You")
                         .font(.headline)
-                    Text("Within \(selectedRadius.shortTitle) • \(selectedRadius.walkingTime)")
+                    Text("Food near \(nearbyAreaName) • Within \(selectedRadius.shortTitle)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -155,27 +166,40 @@ struct SpotMapView: View {
             }
             .padding(.horizontal, 16)
 
-            ScrollView(.horizontal) {
-                LazyHStack(spacing: 12) {
-                    ForEach(nearbyFoodProvider.spots) { spot in
-                        FoodRecommendationCard(
-                            spot: spot,
-                            distance: locationProvider.location.map(spot.distance),
-                            isSaved: savedFoodStore.contains(spot),
-                            toggleSaved: { savedFoodStore.toggle(spot) }
-                        )
-                        .containerRelativeFrame(.horizontal, count: 1, spacing: 12)
+            if nearYouRecommendations.isEmpty {
+                ContentUnavailableView(
+                    nearbyFoodProvider.isSearching ? "Finding nearby food" : "No food spots in range",
+                    systemImage: "fork.knife.circle",
+                    description: Text(
+                        nearbyFoodProvider.isSearching
+                            ? "Searching within \(selectedRadius.shortTitle)…"
+                            : "Try a larger radius or move the purple location."
+                    )
+                )
+                .frame(maxWidth: .infinity)
+            } else {
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 12) {
+                        ForEach(nearYouRecommendations) { recommendation in
+                            FoodRecommendationCard(
+                                recommendation: recommendation,
+                                isSaved: savedFoodStore.contains(recommendation.spot),
+                                select: { selectedFoodSpot = recommendation.spot },
+                                toggleSaved: { savedFoodStore.toggle(recommendation.spot) }
+                            )
+                            .containerRelativeFrame(.horizontal, count: 1, spacing: 12)
+                        }
                     }
+                    .scrollTargetLayout()
+                    .padding(.horizontal, 16)
                 }
-                .scrollTargetLayout()
-                .padding(.horizontal, 16)
+                .scrollIndicators(.hidden)
+                .scrollTargetBehavior(.viewAligned)
             }
-            .scrollIndicators(.hidden)
-            .scrollTargetBehavior(.viewAligned)
         }
         .padding(.top, 14)
         .padding(.bottom, 12)
-        .frame(height: 190)
+        .frame(height: 230)
         .background(.white.opacity(0.96))
         .clipShape(.rect(topLeadingRadius: 22, topTrailingRadius: 22))
         .overlay(alignment: .top) {
@@ -350,37 +374,45 @@ struct SpotMapView: View {
 }
 
 private enum RecommendationRadius: String, CaseIterable, Identifiable {
-    case superClose
+    case veryClose
     case close
-    case oneMile
-    case extendedWalk
+    case oneKilometer
+    case oneAndHalfKilometers
+    case twoKilometers
+    case fiveKilometers
 
     var id: Self { self }
 
     var meters: CLLocationDistance {
         switch self {
-        case .superClose: 500
-        case .close: 1_000
-        case .oneMile: 1_600
-        case .extendedWalk: 2_000
+        case .veryClose: 250
+        case .close: 500
+        case .oneKilometer: 1_000
+        case .oneAndHalfKilometers: 1_500
+        case .twoKilometers: 2_000
+        case .fiveKilometers: 5_000
         }
     }
 
     var shortTitle: String {
         switch self {
-        case .superClose: "500 m"
-        case .close: "1 km"
-        case .oneMile: "1.6 km"
-        case .extendedWalk: "2 km"
+        case .veryClose: "250 m"
+        case .close: "500 m"
+        case .oneKilometer: "1 km"
+        case .oneAndHalfKilometers: "1.5 km"
+        case .twoKilometers: "2 km"
+        case .fiveKilometers: "5 km"
         }
     }
 
     var walkingTime: String {
         switch self {
-        case .superClose: "2–7 min walk"
-        case .close: "7–15 min walk"
-        case .oneMile: "15–25 min walk"
-        case .extendedWalk: "25+ min walk"
+        case .veryClose: "~3 min walk"
+        case .close: "~6 min walk"
+        case .oneKilometer: "~13 min walk"
+        case .oneAndHalfKilometers: "~19 min walk"
+        case .twoKilometers: "~25 min walk"
+        case .fiveKilometers: "~63 min walk"
         }
     }
 
@@ -423,35 +455,42 @@ private struct TestingLocationMarker: View {
 }
 
 private struct FoodRecommendationCard: View {
-    let spot: FoodSpot
-    let distance: CLLocationDistance?
+    let recommendation: RankedFoodSpot
     let isSaved: Bool
+    let select: () -> Void
     let toggleSaved: () -> Void
 
+    private var spot: FoodSpot { recommendation.spot }
+
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "fork.knife")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 52, height: 52)
-                .background(.orange, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        ZStack(alignment: .topTrailing) {
+            Button(action: select) {
+                HStack(spacing: 14) {
+                    FoodSpotImageView(spot: spot, cornerRadius: 14)
+                        .frame(width: 96, height: 112)
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text(spot.name)
-                    .font(.subheadline.weight(.bold))
-                    .lineLimit(1)
-                Text(spot.detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                if let distance {
-                    Label(Self.distanceText(distance), systemImage: "location.fill")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.purple)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(spot.name)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+
+                        categoryAndRating
+
+                        Text("\(distanceText) · ~\(recommendation.walkingMinutes) min walk")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.purple)
+
+                        availability
+                    }
+
+                    Spacer(minLength: 42)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
-
-            Spacer(minLength: 4)
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens restaurant details")
 
             Button(action: toggleSaved) {
                 Image(systemName: isSaved ? "heart.fill" : "heart")
@@ -473,12 +512,46 @@ private struct FoodRecommendationCard: View {
         }
     }
 
-    private static func distanceText(_ distance: CLLocationDistance) -> String {
-        if distance < 1_000 {
-            return "\(Int((distance / 10).rounded() * 10)) m away"
+    private var categoryAndRating: some View {
+        HStack(spacing: 5) {
+            Text(spot.category.title)
+            if let rating = spot.rating {
+                Text("·")
+                Label(
+                    rating.formatted(.number.precision(.fractionLength(1))),
+                    systemImage: "star.fill"
+                )
+            }
+            if let reviewCount = spot.reviewCount {
+                Text("(\(reviewCount.formatted(.number.notation(.compactName))))")
+            }
         }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
 
-        return String(format: "%.1f km away", distance / 1_000)
+    @ViewBuilder
+    private var availability: some View {
+        if spot.priceLevel != nil || spot.isOpen != nil {
+            HStack(spacing: 8) {
+                if let priceLevel = spot.priceLevel {
+                    Text(String(repeating: "¥", count: min(max(priceLevel, 1), 4)))
+                }
+                if let isOpen = spot.isOpen {
+                    Text(isOpen ? "Open" : "Closed")
+                        .foregroundStyle(isOpen ? .green : .red)
+                }
+            }
+            .font(.caption.weight(.semibold))
+        }
+    }
+
+    private var distanceText: String {
+        if recommendation.distance < 1_000 {
+            return "\(Int((recommendation.distance / 10).rounded() * 10)) m"
+        }
+        return String(format: "%.1f km", recommendation.distance / 1_000)
     }
 }
 
