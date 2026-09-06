@@ -13,6 +13,8 @@ final class LocationProvider: NSObject, ObservableObject {
     private let manager = CLLocationManager()
     private let simulatesHarajuku: Bool
 
+    var isSimulatingLocation: Bool { simulatesHarajuku }
+
     init(simulatesHarajuku: Bool) {
         self.simulatesHarajuku = simulatesHarajuku
 

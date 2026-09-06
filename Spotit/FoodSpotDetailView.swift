@@ -45,16 +45,7 @@ struct FoodSpotImageView: View {
     }
 
     private var placeholder: some View {
-        ZStack {
-            LinearGradient(
-                colors: [.orange.opacity(0.92), .pink.opacity(0.78)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            Image(systemName: spot.category.symbolName)
-                .font(.system(size: 32, weight: .semibold))
-                .foregroundStyle(.white)
-        }
+        SpotitPlacePlaceholder()
     }
 }
 
@@ -119,16 +110,7 @@ private struct LookAroundPlaceImage: View {
     }
 
     private var placeholder: some View {
-        ZStack {
-            LinearGradient(
-                colors: [.orange.opacity(0.92), .pink.opacity(0.78)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            Image(systemName: spot.category.symbolName)
-                .font(.system(size: 32, weight: .semibold))
-                .foregroundStyle(.white)
-        }
+        SpotitPlacePlaceholder()
     }
 }
 
@@ -143,6 +125,23 @@ struct FoodSpotDetailView: View {
 
     let spot: FoodSpot
     let userLocation: GeoPoint?
+    let isWorthTheWalk: Bool
+    let toggleSaved: () -> Void
+    @State private var isSaved: Bool
+
+    init(
+        spot: FoodSpot,
+        userLocation: GeoPoint?,
+        isWorthTheWalk: Bool = false,
+        isSaved: Bool = false,
+        toggleSaved: @escaping () -> Void = {}
+    ) {
+        self.spot = spot
+        self.userLocation = userLocation
+        self.isWorthTheWalk = isWorthTheWalk
+        self.toggleSaved = toggleSaved
+        _isSaved = State(initialValue: isSaved)
+    }
 
     private var distance: CLLocationDistance? {
         userLocation.map(spot.distance)
@@ -155,27 +154,55 @@ struct FoodSpotDetailView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    imageGallery
+                VStack(alignment: .leading, spacing: 24) {
+                    titleBlock
+                        .padding(.horizontal, 20)
 
-                    VStack(alignment: .leading, spacing: 16) {
-                        titleBlock
+                    imageGallery
+                        .padding(.horizontal, 20)
+
+                    VStack(alignment: .leading, spacing: 24) {
                         summaryBlock
-                        detailsBlock
                         locationMap
+                        detailsBlock
                         directionsButton
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 32)
                 }
+                .padding(.top, 12)
             }
-            .ignoresSafeArea(edges: .top)
+            .background(SpotitStyle.warmBackground)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(SpotitStyle.ink)
+                            .frame(width: 36, height: 36)
+                            .background(SpotitStyle.card, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Close")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .buttonStyle(.bordered)
+                    Button {
+                        isSaved.toggle()
+                        toggleSaved()
+                    } label: {
+                        Image(systemName: isSaved ? "heart.fill" : "heart")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(isSaved ? SpotitStyle.purple : SpotitStyle.ink)
+                            .frame(width: 36, height: 36)
+                            .background(SpotitStyle.card, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .contentTransition(.symbolEffect(.replace))
+                    .accessibilityLabel(isSaved ? "Remove from saved" : "Save place")
                 }
             }
+            .toolbarBackground(SpotitStyle.warmBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 
@@ -195,63 +222,81 @@ struct FoodSpotDetailView: View {
                 }
             }
             .tabViewStyle(.page)
-            .frame(height: 300)
+            .frame(height: 286)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         } else {
-            FoodSpotImageView(spot: spot)
-                .frame(height: 300)
+            FoodSpotImageView(spot: spot, cornerRadius: 24)
+                .frame(height: 286)
         }
     }
 
     private var titleBlock: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 10) {
+            Text((spot.neighborhood ?? spot.category.title).uppercased())
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.25)
+                .foregroundStyle(SpotitStyle.secondaryText)
+
             Text(spot.name)
-                .font(.largeTitle.bold())
+                .font(.system(size: 32, weight: .bold))
+                .foregroundStyle(SpotitStyle.ink)
+
+            if isWorthTheWalk {
+                WorthTheWalkBadge()
+            }
 
             HStack(spacing: 8) {
-                Text(spot.category.title)
-
                 if let rating = spot.rating {
-                    Text("·")
                     Label(
                         rating.formatted(.number.precision(.fractionLength(1))),
                         systemImage: "star.fill"
                     )
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(SpotitStyle.ink)
                 }
 
                 if let reviewCount = spot.reviewCount {
-                    Text("(\(reviewCount.formatted()) reviews)")
+                    Text("(\(reviewCount.formatted(.number.notation(.compactName))))")
                 }
+
+                if spot.rating != nil { Text("·") }
+                Text(spot.category.title)
             }
             .font(.subheadline)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(SpotitStyle.secondaryText)
 
             HStack(spacing: 10) {
                 if let distance, let walkingMinutes {
-                    Text("\(Self.distanceText(distance)) · ~\(walkingMinutes) min walk")
+                    Label("\(walkingMinutes) min walk", systemImage: "figure.walk")
+                    Text("·")
+                    Text(Self.distanceText(distance))
                 }
                 if let priceLevel = spot.priceLevel {
+                    Text("·")
                     Text(Self.priceText(priceLevel))
                 }
                 if let isOpen = spot.isOpen {
+                    Text("·")
                     Text(isOpen ? "Open" : "Closed")
                         .foregroundStyle(isOpen ? .green : .red)
                 }
             }
             .font(.subheadline.weight(.semibold))
+            .foregroundStyle(SpotitStyle.purple)
         }
     }
 
     private var summaryBlock: some View {
         Text(spot.summary ?? "A nearby \(spot.category.title.lowercased()) option in \(spot.neighborhood ?? "Japan").")
-            .font(.body)
-            .foregroundStyle(.secondary)
+            .font(.system(size: 16, weight: .regular))
+            .foregroundStyle(SpotitStyle.secondaryText)
+            .lineSpacing(4)
     }
 
     private var detailsBlock: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Details")
-                .font(.title3.bold())
+                .font(.system(size: 21, weight: .bold))
+                .foregroundStyle(SpotitStyle.ink)
 
             if let address = spot.address, !address.isEmpty {
                 DetailRow(icon: "mappin.and.ellipse", title: "Address", value: address)
@@ -272,7 +317,7 @@ struct FoodSpotDetailView: View {
             if spot.address == nil && spot.openingHours.isEmpty && spot.phoneNumber == nil {
                 Text("Additional restaurant details are not available from this listing yet.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(SpotitStyle.secondaryText)
             }
         }
     }
@@ -282,24 +327,36 @@ struct FoodSpotDetailView: View {
             center: spot.location.coordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008)
         ))) {
-            Marker(spot.name, coordinate: spot.location.coordinate)
-                .tint(.purple)
+            Annotation(spot.name, coordinate: spot.location.coordinate) {
+                MapRecommendationAnnotation(
+                    symbolName: spot.category.symbolName,
+                    isSelected: true,
+                    isSaved: isSaved
+                )
+            }
+            .annotationTitles(.hidden)
         }
-        .frame(height: 210)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
+        .frame(height: 190)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.primary.opacity(0.07), lineWidth: 1)
+        }
         .allowsHitTesting(false)
         .accessibilityLabel("Map showing \(spot.name)")
     }
 
     private var directionsButton: some View {
         Button(action: openDirections) {
-            Label("Walking Directions", systemImage: "figure.walk")
+            Label("Walk there", systemImage: "figure.walk")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(SpotitStyle.warmBackground)
                 .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(SpotitStyle.ink, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
-        .buttonStyle(.borderedProminent)
-        .buttonBorderShape(.roundedRectangle(radius: 14))
-        .controlSize(.large)
-        .tint(.purple)
+        .buttonStyle(.plain)
     }
 
     private func openDirections() {
@@ -333,14 +390,15 @@ private struct DetailRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .foregroundStyle(.purple)
+                .foregroundStyle(SpotitStyle.purple)
                 .frame(width: 22)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(SpotitStyle.secondaryText)
                 Text(value)
                     .font(.subheadline)
+                    .foregroundStyle(SpotitStyle.ink)
             }
         }
     }
