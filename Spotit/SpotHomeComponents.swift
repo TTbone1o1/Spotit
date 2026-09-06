@@ -23,13 +23,20 @@ enum SpotitStyle {
             ? UIColor(red: 20 / 255, green: 19 / 255, blue: 18 / 255, alpha: 1)
             : UIColor(red: 250 / 255, green: 249 / 255, blue: 247 / 255, alpha: 1)
     })
-    static let card = Color(uiColor: .secondarySystemBackground)
+    static let card = Color(uiColor: .systemBackground)
     static let mutedSurface = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
             ? UIColor(red: 47 / 255, green: 45 / 255, blue: 43 / 255, alpha: 1)
             : UIColor(red: 232 / 255, green: 230 / 255, blue: 226 / 255, alpha: 1)
     })
-    static let divider = Color.primary.opacity(0.065)
+}
+
+enum SpotitHomeTab: String, CaseIterable, Identifiable {
+    case discover = "Discover"
+    case saved = "Saved"
+
+    var id: Self { self }
+    var symbolName: String { self == .discover ? "safari.fill" : "heart.fill" }
 }
 
 struct MapRecommendationAnnotation: View {
@@ -41,25 +48,24 @@ struct MapRecommendationAnnotation: View {
         ZStack(alignment: .topTrailing) {
             Circle()
                 .fill(isSelected ? SpotitStyle.ink : SpotitStyle.card)
-                .frame(width: isSelected ? 50 : 40, height: isSelected ? 50 : 40)
+                .frame(width: isSelected ? 54 : 42, height: isSelected ? 54 : 42)
                 .overlay {
-                    Circle()
-                        .stroke(
-                            isSelected ? Color.white.opacity(0.92) : Color.primary.opacity(0.10),
-                            lineWidth: isSelected ? 2 : 1
-                        )
+                    Circle().stroke(
+                        isSelected ? Color.white.opacity(0.96) : Color.primary.opacity(0.09),
+                        lineWidth: isSelected ? 2.5 : 1
+                    )
                 }
-                .shadow(color: .black.opacity(isSelected ? 0.18 : 0.11), radius: 9, y: 4)
+                .shadow(color: .black.opacity(isSelected ? 0.18 : 0.11), radius: 10, y: 4)
 
             Image(systemName: symbolName)
-                .font(.system(size: isSelected ? 18 : 15, weight: .semibold))
+                .font(.system(size: isSelected ? 19 : 15, weight: .semibold))
                 .foregroundStyle(isSelected ? SpotitStyle.warmBackground : SpotitStyle.ink)
-                .frame(width: isSelected ? 50 : 40, height: isSelected ? 50 : 40)
+                .frame(width: isSelected ? 54 : 42, height: isSelected ? 54 : 42)
 
             if isSaved {
                 Circle()
                     .fill(SpotitStyle.purple)
-                    .frame(width: 13, height: 13)
+                    .frame(width: 14, height: 14)
                     .overlay {
                         Image(systemName: "heart.fill")
                             .font(.system(size: 6, weight: .bold))
@@ -68,11 +74,11 @@ struct MapRecommendationAnnotation: View {
                     .overlay { Circle().stroke(.white, lineWidth: 1.5) }
             }
         }
-        .frame(width: 56, height: 56)
+        .frame(width: 60, height: 60)
         .contentShape(Circle())
-        .scaleEffect(isSelected ? 1 : 0.98)
-        .zIndex(isSelected ? 2 : 1)
-        .animation(.spring(response: 0.32, dampingFraction: 0.72), value: isSelected)
+        .scaleEffect(isSelected ? 1 : 0.92)
+        .zIndex(isSelected ? 20 : 1)
+        .animation(.spring(response: 0.32, dampingFraction: 0.74), value: isSelected)
     }
 }
 
@@ -85,9 +91,9 @@ struct MapControlButton: View {
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(SpotitStyle.ink)
             .frame(width: 46, height: 46)
-            .background(SpotitStyle.card, in: Circle())
-            .overlay { Circle().stroke(Color.primary.opacity(0.07), lineWidth: 1) }
-            .shadow(color: .black.opacity(0.11), radius: 10, y: 4)
+            .background(SpotitStyle.card.opacity(0.97), in: Circle())
+            .overlay { Circle().stroke(Color.primary.opacity(0.06), lineWidth: 1) }
+            .shadow(color: .black.opacity(0.09), radius: 9, y: 3)
             .contentShape(Circle())
             .accessibilityLabel(accessibilityLabel)
     }
@@ -103,19 +109,21 @@ struct UserLocationMarker: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(SpotitStyle.purple.opacity(0.16))
-                .frame(width: 38, height: 38)
+                .fill(SpotitStyle.purple.opacity(0.13))
+                .frame(width: 42, height: 42)
+            Circle()
+                .fill(.white)
+                .frame(width: 28, height: 28)
             Circle()
                 .fill(SpotitStyle.purple)
-                .frame(width: 17, height: 17)
-                .overlay { Circle().stroke(.white, lineWidth: 3) }
-                .shadow(color: SpotitStyle.purple.opacity(0.35), radius: 4, y: 2)
+                .frame(width: 19, height: 19)
         }
-        .frame(width: 48, height: 48)
+        .shadow(color: SpotitStyle.purple.opacity(0.22), radius: 5, y: 2)
+        .frame(width: 50, height: 50)
         .contentShape(Circle())
         .offset(dragOffset)
         .scaleEffect(isDragging ? 1.12 : 1)
-        .zIndex(10)
+        .zIndex(30)
         .animation(.smooth(duration: 0.18), value: isDragging)
         .highPriorityGesture(
             DragGesture(minimumDistance: isDraggable ? 1 : .greatestFiniteMagnitude)
@@ -128,254 +136,306 @@ struct UserLocationMarker: View {
     }
 }
 
-struct RecommendationPanel<FilterContent: View>: View {
-    let recommendations: [RankedFoodSpot]
-    let selectedID: String?
-    let worthTheWalkIDs: Set<String>
-    let radiusDescription: String
-    let isLoading: Bool
-    let isSaved: (FoodSpot) -> Bool
-    let select: (RankedFoodSpot) -> Void
-    let open: (RankedFoodSpot) -> Void
-    let toggleSaved: (FoodSpot) -> Void
-    @ViewBuilder let filterContent: () -> FilterContent
+struct DiscoverSearchField: View {
+    @Binding var text: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 10)
-
-            if recommendations.isEmpty {
-                if isLoading {
-                    RecommendationLoadingRows()
-                } else {
-                    emptyState
-                }
-            } else {
-                recommendationList
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(SpotitStyle.warmBackground)
-        .clipShape(.rect(topLeadingRadius: 30, topTrailingRadius: 30))
-        .overlay(alignment: .top) {
-            UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30)
-                .stroke(Color.white.opacity(0.42), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.11), radius: 18, y: -4)
-    }
-
-    private var header: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(recommendations.count) worth your time")
-                    .font(.system(size: 23, weight: .bold, design: .default))
-                    .foregroundStyle(SpotitStyle.ink)
-                    .contentTransition(.numericText())
-
-                Text(radiusDescription)
-                    .font(.system(size: 12.5, weight: .regular))
-                    .foregroundStyle(SpotitStyle.secondaryText)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 4)
-            filterContent()
-        }
-    }
-
-    private var recommendationList: some View {
-        ScrollViewReader { reader in
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(recommendations) { recommendation in
-                        RecommendationRow(
-                            recommendation: recommendation,
-                            isSelected: recommendation.id == selectedID,
-                            isWorthTheWalk: worthTheWalkIDs.contains(recommendation.id),
-                            isSaved: isSaved(recommendation.spot),
-                            select: { select(recommendation) },
-                            open: { open(recommendation) },
-                            toggleSaved: { toggleSaved(recommendation.spot) }
-                        )
-                        .id(recommendation.id)
-
-                        if recommendation.id != recommendations.last?.id {
-                            Rectangle()
-                                .fill(SpotitStyle.divider)
-                                .frame(height: 1)
-                                .padding(.leading, 92)
-                                .padding(.trailing, 20)
-                        }
-                    }
-                }
-            }
-            .scrollIndicators(.hidden)
-            .onChange(of: selectedID) { _, id in
-                guard let id else { return }
-                withAnimation(.smooth(duration: 0.32)) {
-                    reader.scrollTo(id, anchor: .center)
-                }
-            }
-        }
-    }
-
-    private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text("Nothing worth the detour yet.")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(SpotitStyle.ink)
-            Text("Try exploring a little farther with Filter.")
-                .font(.subheadline)
+        HStack(spacing: 11) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(SpotitStyle.secondaryText)
+
+            TextField("Ramen, coffee, anything…", text: $text)
+                .font(.system(size: 16))
+                .foregroundStyle(SpotitStyle.ink)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+
+            if !text.isEmpty {
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(SpotitStyle.secondaryText.opacity(0.75))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.top, 22)
+        .padding(.horizontal, 17)
+        .frame(height: 54)
+        .background(SpotitStyle.card.opacity(0.97), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 19, style: .continuous)
+                .stroke(Color.primary.opacity(0.045), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.075), radius: 11, y: 4)
     }
 }
 
-struct RecommendationRow: View {
+struct WalkingRadiusLabel: View {
+    let minutes: Int
+
+    var body: some View {
+        Text("\(minutes)m")
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(SpotitStyle.warmBackground)
+            .frame(width: 52, height: 52)
+            .background(SpotitStyle.ink, in: Circle())
+            .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
+            .accessibilityLabel("\(minutes) minute walking radius")
+    }
+}
+
+struct WorthYourTimeIndicator: View {
+    let count: Int
+    let outsideCount: Int
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(SpotitStyle.purple)
+                .frame(width: 7, height: 7)
+            Text("\(count) worth your time")
+                .font(.system(size: 13.5, weight: .semibold))
+                .foregroundStyle(.white)
+
+            if outsideCount > 0 {
+                Text("·")
+                    .foregroundStyle(.white.opacity(0.42))
+                Text("+\(outsideCount)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(SpotitStyle.purple)
+            }
+        }
+        .padding(.horizontal, 15)
+        .frame(height: 38)
+        .background(Color.black.opacity(0.91), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .shadow(color: .black.opacity(0.09), radius: 8, y: 3)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct RecommendationCarousel: View {
+    let recommendations: [RankedFoodSpot]
+    @Binding var selectedID: String?
+    let worthTheWalkIDs: Set<String>
+    let isLoading: Bool
+    let emptyTitle: String
+    let isSaved: (FoodSpot) -> Bool
+    let open: (RankedFoodSpot) -> Void
+    let toggleSaved: (FoodSpot) -> Void
+
+    private var closestID: String? {
+        recommendations.min(by: { $0.distance < $1.distance })?.id
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let cardWidth = geometry.size.width * 0.82
+            let cardHeight = min(max(geometry.size.height, 315), 350)
+
+            Group {
+                if recommendations.isEmpty {
+                    if isLoading {
+                        RecommendationCardSkeleton(width: cardWidth, height: cardHeight)
+                            .padding(.leading, 20)
+                    } else {
+                        emptyState(width: cardWidth, height: cardHeight)
+                            .padding(.leading, 20)
+                    }
+                } else {
+                    ScrollView(.horizontal) {
+                        LazyHStack(spacing: 14) {
+                            ForEach(recommendations) { recommendation in
+                                DiscoveryRecommendationCard(
+                                    recommendation: recommendation,
+                                    isClosest: recommendation.id == closestID,
+                                    isWorthTheWalk: worthTheWalkIDs.contains(recommendation.id),
+                                    isSaved: isSaved(recommendation.spot),
+                                    open: { open(recommendation) },
+                                    toggleSaved: { toggleSaved(recommendation.spot) }
+                                )
+                                .frame(width: cardWidth, height: cardHeight)
+                                .id(recommendation.id)
+                            }
+                        }
+                        .scrollTargetLayout()
+                    }
+                    .contentMargins(.horizontal, 20, for: .scrollContent)
+                    .scrollIndicators(.hidden)
+                    .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+                    .scrollPosition(id: $selectedID, anchor: .leading)
+                }
+            }
+        }
+    }
+
+    private func emptyState(width: CGFloat, height: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: "map")
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(SpotitStyle.purple)
+            Text(emptyTitle)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(SpotitStyle.ink)
+            Text("Try another search or explore a little farther.")
+                .font(.subheadline)
+                .foregroundStyle(SpotitStyle.secondaryText)
+        }
+        .frame(width: width, height: height, alignment: .leading)
+        .padding(.horizontal, 20)
+        .background(SpotitStyle.card, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .shadow(color: .black.opacity(0.10), radius: 14, y: 5)
+    }
+}
+
+struct DiscoveryRecommendationCard: View {
     let recommendation: RankedFoodSpot
-    let isSelected: Bool
+    let isClosest: Bool
     let isWorthTheWalk: Bool
     let isSaved: Bool
-    let select: () -> Void
     let open: () -> Void
     let toggleSaved: () -> Void
 
     private var spot: FoodSpot { recommendation.spot }
 
     var body: some View {
-        Button {
-            select()
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(260))
-                open()
-            }
-        } label: {
-            HStack(spacing: 13) {
-                RecommendationThumbnail(spot: spot)
+        GeometryReader { geometry in
+            let imageHeight = min(max(geometry.size.height * 0.46, 145), 160)
 
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 6) {
+            VStack(spacing: 0) {
+                ZStack(alignment: .topTrailing) {
+                    FoodSpotImageView(spot: spot, snapshotSize: CGSize(width: 700, height: 360))
+                        .frame(height: imageHeight)
+                        .clipped()
+
+                    Button(action: toggleSaved) {
+                        Image(systemName: isSaved ? "heart.fill" : "heart")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(isSaved ? SpotitStyle.purple : SpotitStyle.ink)
+                            .frame(width: 36, height: 36)
+                            .background(SpotitStyle.card.opacity(0.94), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(14)
+                    .contentTransition(.symbolEffect(.replace))
+                    .accessibilityLabel(isSaved ? "Remove from saved" : "Save place")
+                }
+                .overlay(alignment: .bottomLeading) {
+                    if isClosest {
+                        Text("CLOSEST")
+                            .font(.system(size: 11, weight: .semibold))
+                            .tracking(0.85)
+                            .foregroundStyle(Color.secondary)
+                            .padding(.horizontal, 13)
+                            .frame(height: 32)
+                            .background(SpotitStyle.card.opacity(0.96), in: Capsule())
+                            .padding(.leading, 16)
+                            .padding(.bottom, 15)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 7) {
                         Text(spot.name)
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: 21, weight: .bold))
                             .foregroundStyle(SpotitStyle.ink)
                             .lineLimit(1)
-
-                        if isSaved {
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(SpotitStyle.purple)
-                        }
-                    }
-
-                    ratingLine
-
-                    HStack(spacing: 6) {
-                        CategoryPill(text: spot.neighborhood ?? spot.category.title)
+                        Spacer(minLength: 0)
                         if isWorthTheWalk {
                             WorthTheWalkBadge(compact: true)
                         }
                     }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
 
-                WalkTimeView(minutes: recommendation.walkingMinutes)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .background {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(SpotitStyle.purple.opacity(0.075))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
+                    metadata
+
+                    Text(spot.summary ?? "A nearby \(spot.category.title.lowercased()) spot worth knowing about in \(spot.neighborhood ?? "the neighborhood").")
+                        .font(.system(size: 14.5))
+                        .foregroundStyle(Color.primary.opacity(0.70))
+                        .lineSpacing(3)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: 0)
+
+                    Label("\(recommendation.walkingMinutes) min", systemImage: "figure.walk")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(SpotitStyle.purple)
+                        .padding(.horizontal, 13)
+                        .frame(height: 31)
+                        .background(SpotitStyle.purple.opacity(0.12), in: Capsule())
                 }
+                .padding(.horizontal, 19)
+                .padding(.top, 16)
+                .padding(.bottom, 17)
             }
-            .contentShape(Rectangle())
+            .background(SpotitStyle.card)
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .stroke(Color.primary.opacity(0.035), lineWidth: 0.5)
+            }
+            .shadow(color: .black.opacity(0.12), radius: 14, y: 5)
+            .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .onTapGesture(perform: open)
         }
-        .buttonStyle(.plain)
-        .contextMenu {
-            Button(action: toggleSaved) {
-                Label(isSaved ? "Remove from Saved" : "Save Place", systemImage: isSaved ? "heart.slash" : "heart")
-            }
-            Button(action: open) {
-                Label("View Details", systemImage: "arrow.up.right")
-            }
-        }
-        .accessibilityHint("Selects this place on the map and opens its details")
+        .accessibilityElement(children: .contain)
+        .accessibilityHint("Opens place details")
     }
 
-    private var ratingLine: some View {
+    private var metadata: some View {
         HStack(spacing: 4) {
             if let rating = spot.rating {
                 Image(systemName: "star.fill")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(SpotitStyle.ink)
                 Text(rating.formatted(.number.precision(.fractionLength(1))))
+                    .fontWeight(.semibold)
                     .foregroundStyle(SpotitStyle.ink)
                 if let reviewCount = spot.reviewCount {
                     Text("(\(reviewCount.formatted(.number.notation(.compactName))))")
                 }
                 Text("·")
             }
-            Text(spot.category.title)
+            if let priceLevel = spot.priceLevel {
+                Text(String(repeating: "¥", count: min(max(priceLevel, 1), 4)))
+                Text("·")
+            }
+            Text(spot.neighborhood ?? spot.category.title)
         }
-        .font(.system(size: 11.5, weight: .medium))
+        .font(.system(size: 13))
         .foregroundStyle(SpotitStyle.secondaryText)
         .lineLimit(1)
     }
 }
 
-struct RecommendationThumbnail: View {
-    let spot: FoodSpot
+struct SpotitBottomTabBar: View {
+    @Binding var selection: SpotitHomeTab
 
     var body: some View {
-        FoodSpotImageView(spot: spot, snapshotSize: CGSize(width: 240, height: 240))
-            .frame(width: 62, height: 62)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+        HStack(spacing: 0) {
+            ForEach(SpotitHomeTab.allCases) { tab in
+                Button {
+                    withAnimation(.smooth(duration: 0.25)) { selection = tab }
+                } label: {
+                    VStack(spacing: 5) {
+                        Image(systemName: tab.symbolName)
+                            .font(.system(size: 23, weight: .semibold))
+                        Text(tab.rawValue)
+                            .font(.system(size: 11.5, weight: .semibold))
+                    }
+                    .foregroundStyle(selection == tab ? SpotitStyle.purple : Color.secondary.opacity(0.72))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 62)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selection == tab ? .isSelected : [])
             }
-    }
-}
-
-struct WalkTimeView: View {
-    let minutes: Int
-
-    var body: some View {
-        VStack(alignment: .trailing, spacing: -1) {
-            Text(minutes.formatted())
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(SpotitStyle.ink)
-                .monospacedDigit()
-            Text("MIN")
-                .font(.system(size: 9, weight: .semibold))
-                .tracking(0.8)
-                .foregroundStyle(SpotitStyle.secondaryText)
         }
-        .frame(width: 38, alignment: .trailing)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(minutes) minute walk")
-    }
-}
-
-struct CategoryPill: View {
-    let text: String
-
-    var body: some View {
-        Text(text.uppercased())
-            .font(.system(size: 9, weight: .semibold))
-            .tracking(0.65)
-            .foregroundStyle(SpotitStyle.secondaryText)
-            .lineLimit(1)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(SpotitStyle.mutedSurface.opacity(0.78), in: Capsule())
+        .background(.regularMaterial)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Color.primary.opacity(0.055)).frame(height: 0.5)
+        }
     }
 }
 
@@ -385,10 +445,10 @@ struct WorthTheWalkBadge: View {
     var body: some View {
         Label("WORTH THE WALK", systemImage: "figure.walk")
             .font(.system(size: compact ? 8 : 10, weight: .bold))
-            .tracking(compact ? 0.25 : 0.7)
+            .tracking(compact ? 0.2 : 0.7)
             .foregroundStyle(SpotitStyle.purple)
             .padding(.horizontal, compact ? 6 : 9)
-            .padding(.vertical, compact ? 3 : 6)
+            .padding(.vertical, compact ? 4 : 6)
             .background(SpotitStyle.purple.opacity(0.10), in: Capsule())
             .fixedSize()
     }
@@ -398,39 +458,42 @@ struct SpotitPlacePlaceholder: View {
     var body: some View {
         Canvas { context, size in
             context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(SpotitStyle.mutedSurface))
-            let spacing: CGFloat = 13
+            let spacing: CGFloat = 16
             var path = Path()
             for offset in stride(from: -size.height, through: size.width + size.height, by: spacing) {
                 path.move(to: CGPoint(x: offset, y: size.height))
                 path.addLine(to: CGPoint(x: offset + size.height, y: 0))
             }
-            context.stroke(path, with: .color(Color.primary.opacity(0.045)), lineWidth: 1)
+            context.stroke(path, with: .color(Color.primary.opacity(0.028)), lineWidth: 1)
         }
         .accessibilityHidden(true)
     }
 }
 
-private struct RecommendationLoadingRows: View {
+private struct RecommendationCardSkeleton: View {
+    let width: CGFloat
+    let height: CGFloat
+
     var body: some View {
-        VStack(spacing: 1) {
-            ForEach(0..<3, id: \.self) { _ in
-                HStack(spacing: 13) {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(SpotitStyle.mutedSurface)
-                        .frame(width: 62, height: 62)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Capsule().fill(SpotitStyle.mutedSurface).frame(width: 142, height: 12)
-                        Capsule().fill(SpotitStyle.mutedSurface.opacity(0.75)).frame(width: 104, height: 9)
-                        Capsule().fill(SpotitStyle.mutedSurface.opacity(0.75)).frame(width: 72, height: 13)
-                    }
-                    Spacer()
-                    Capsule().fill(SpotitStyle.mutedSurface).frame(width: 28, height: 26)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
+        VStack(alignment: .leading, spacing: 0) {
+            Rectangle()
+                .fill(SpotitStyle.mutedSurface)
+                .frame(height: min(max(height * 0.46, 145), 160))
+            VStack(alignment: .leading, spacing: 12) {
+                Capsule().fill(SpotitStyle.mutedSurface).frame(width: width * 0.56, height: 18)
+                Capsule().fill(SpotitStyle.mutedSurface.opacity(0.75)).frame(width: width * 0.42, height: 11)
+                Capsule().fill(SpotitStyle.mutedSurface.opacity(0.65)).frame(height: 11)
+                Capsule().fill(SpotitStyle.mutedSurface.opacity(0.65)).frame(width: width * 0.72, height: 11)
+                Spacer()
+                Capsule().fill(SpotitStyle.purple.opacity(0.10)).frame(width: 78, height: 31)
             }
+            .padding(19)
         }
-        .opacity(0.72)
+        .frame(width: width, height: height)
+        .background(SpotitStyle.card)
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .shadow(color: .black.opacity(0.09), radius: 14, y: 5)
+        .opacity(0.78)
         .accessibilityLabel("Finding nearby places")
     }
 }

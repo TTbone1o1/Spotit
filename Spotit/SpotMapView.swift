@@ -12,14 +12,39 @@ struct SpotMapView: View {
     @State private var showsRecommendations = true
     @State private var cameraPosition: MapCameraPosition = .region(Self.harajukuRegion)
     @State private var visibleRegion = Self.harajukuRegion
-    @State private var selectedRadius: RecommendationRadius = .oneKilometer
+    @State private var selectedRadius: RecommendationRadius = .tenMinuteWalk
     @State private var selectedFoodSpot: FoodSpot?
+    @State private var selectedTab: SpotitHomeTab = .discover
+    @State private var searchText = ""
     @StateObject private var locationProvider = LocationProvider(simulatesHarajuku: true)
     @StateObject private var nearbyFoodProvider = NearbyFoodProvider()
     @StateObject private var savedFoodStore = SavedFoodStore()
 
     private var nearYouRecommendations: [RankedFoodSpot] {
         nearbyFoodProvider.sections.first(where: { $0.kind == .nearYou })?.items ?? []
+    }
+
+    private var savedRecommendations: [RankedFoodSpot] {
+        savedFoodStore.spots.map { spot in
+            let distance = locationProvider.location.map(spot.distance) ?? 0
+            return RankedFoodSpot(spot: spot, distance: distance, score: spot.popularity ?? 0)
+        }
+        .sorted { $0.distance < $1.distance }
+    }
+
+    private var activeRecommendations: [RankedFoodSpot] {
+        selectedTab == .discover ? nearYouRecommendations : savedRecommendations
+    }
+
+    private var visibleRecommendations: [RankedFoodSpot] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else { return activeRecommendations }
+
+        return activeRecommendations.filter { recommendation in
+            let spot = recommendation.spot
+            return [spot.name, spot.category.title, spot.neighborhood ?? "", spot.summary ?? ""]
+                .contains { $0.localizedCaseInsensitiveContains(query) }
+        }
     }
 
     private var worthTheWalkIDs: Set<String> {
@@ -31,32 +56,49 @@ struct SpotMapView: View {
         )
     }
 
-    private var nearbyRecommendationIDs: Set<String> {
-        Set(nearYouRecommendations.map(\.id))
-    }
-
     private var selectedRecommendation: RankedFoodSpot? {
-        nearYouRecommendations.first { $0.id == selectedRecommendationID }
+        visibleRecommendations.first { $0.id == selectedRecommendationID }
     }
 
     private var isUsingTestLocation: Bool { locationProvider.isSimulatingLocation }
 
+    private var outsideRadiusCount: Int {
+        guard selectedTab == .discover && searchText.isEmpty else { return 0 }
+        return nearbyFoodProvider.justOutsideRadiusCount
+    }
+
     var body: some View {
         GeometryReader { geometry in
-            let panelHeight = min(max(geometry.size.height * 0.35, 280), 340)
+            let cardHeight = min(max(geometry.size.height * 0.39, 315), 350)
 
-            ZStack(alignment: .bottom) {
+            ZStack {
                 spotitMap
-                mapControls(panelHeight: panelHeight)
+                topControls
 
                 if showsRecommendations {
-                    recommendationPanel
-                        .frame(height: panelHeight)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    RecommendationCarousel(
+                        recommendations: visibleRecommendations,
+                        selectedID: $selectedRecommendationID,
+                        worthTheWalkIDs: worthTheWalkIDs,
+                        isLoading: selectedTab == .discover && nearbyFoodProvider.isSearching,
+                        emptyTitle: selectedTab == .saved ? "Nothing saved yet." : "Nothing worth the detour yet.",
+                        isSaved: savedFoodStore.contains,
+                        open: openRecommendation,
+                        toggleSaved: savedFoodStore.toggle
+                    )
+                    .frame(height: cardHeight)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, 18)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+
+                mapControls(cardHeight: cardHeight)
             }
         }
         .background(SpotitStyle.warmBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            SpotitBottomTabBar(selection: $selectedTab)
+        }
         .onAppear {
             locationProvider.start()
             guard let location = locationProvider.location else { return }
@@ -73,16 +115,26 @@ struct SpotMapView: View {
             selectedRecommendationID = nil
             focusOnDiscoveryRadius()
         }
-        .onChange(of: nearYouRecommendations.map(\.id)) { _, ids in
+        .onChange(of: selectedTab) { _, _ in
+            searchText = ""
+            selectedRecommendationID = visibleRecommendations.first?.id
+            if selectedTab == .discover { focusOnDiscoveryRadius() }
+        }
+        .onChange(of: visibleRecommendations.map(\.id)) { _, ids in
             guard !ids.isEmpty else {
                 selectedRecommendationID = nil
                 return
             }
             if selectedRecommendationID.map({ !ids.contains($0) }) ?? true {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
-                    selectedRecommendationID = ids.first
-                }
+                selectedRecommendationID = ids.first
             }
+        }
+        .onChange(of: selectedRecommendationID) { oldID, newID in
+            guard oldID != nil,
+                  let newID,
+                  let recommendation = visibleRecommendations.first(where: { $0.id == newID })
+            else { return }
+            focus(on: recommendation)
         }
         .sheet(item: $selectedFoodSpot) { spot in
             FoodSpotDetailView(
@@ -95,102 +147,65 @@ struct SpotMapView: View {
         }
     }
 
-    private var recommendationPanel: some View {
-        RecommendationPanel(
-            recommendations: nearYouRecommendations,
-            selectedID: selectedRecommendationID,
-            worthTheWalkIDs: worthTheWalkIDs,
-            radiusDescription: "Within a \(selectedRadius.walkingMinuteCount) minute walk · curated nearby",
-            isLoading: nearbyFoodProvider.isSearching,
-            isSaved: savedFoodStore.contains,
-            select: selectRecommendation,
-            open: { recommendation in
-                selectedRecommendationID = recommendation.id
-                selectedFoodSpot = recommendation.spot
-            },
-            toggleSaved: savedFoodStore.toggle
-        ) {
-            radiusMenuLabel
-        }
-    }
+    private var topControls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 11) {
+                DiscoverSearchField(text: $searchText)
 
-    private var radiusMenuLabel: some View {
-        Menu {
-            ForEach(RecommendationRadius.allCases) { radius in
-                Button {
-                    selectedRadius = radius
+                Menu {
+                    radiusOptions
                 } label: {
-                    if radius == selectedRadius {
-                        Label(radius.title, systemImage: "checkmark")
-                    } else {
-                        Text(radius.title)
-                    }
-                }
-            }
-        } label: {
-            Text("FILTER")
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(1.1)
-                .foregroundStyle(SpotitStyle.purple)
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Filter recommendation radius")
-        .accessibilityValue(selectedRadius.title)
-    }
-
-    private func mapControls(panelHeight: CGFloat) -> some View {
-        VStack {
-            HStack {
-                Spacer()
-                VStack(spacing: 10) {
-                    Button(action: { focusOnDiscoveryRadius() }) {
-                        MapControlButton(
-                            systemImage: "location.fill",
-                            accessibilityLabel: isUsingTestLocation ? "Center testing location" : "Center current location"
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    Menu {
-                        ForEach(RecommendationRadius.allCases) { radius in
-                            Button {
-                                selectedRadius = radius
-                            } label: {
-                                if radius == selectedRadius {
-                                    Label(radius.title, systemImage: "checkmark")
-                                } else {
-                                    Text(radius.title)
-                                }
-                            }
-                        }
-                    } label: {
-                        MapControlButton(
-                            systemImage: "circle.dashed",
-                            accessibilityLabel: "Change discovery radius"
-                        )
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-
-            Spacer()
-
-            HStack {
-                Spacer()
-                Button(action: showJapanOverview) {
-                    MapControlButton(
-                        systemImage: "globe.asia.australia.fill",
-                        accessibilityLabel: "Explore Japan"
-                    )
+                    WalkingRadiusLabel(minutes: selectedRadius.walkingMinuteCount)
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, showsRecommendations ? panelHeight + 14 : 20)
+
+            WorthYourTimeIndicator(
+                count: visibleRecommendations.count,
+                outsideCount: outsideRadiusCount
+            )
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    @ViewBuilder
+    private var radiusOptions: some View {
+        ForEach(RecommendationRadius.allCases) { radius in
+            Button {
+                selectedRadius = radius
+            } label: {
+                if radius == selectedRadius {
+                    Label(radius.title, systemImage: "checkmark")
+                } else {
+                    Text(radius.title)
+                }
+            }
+        }
+    }
+
+    private func mapControls(cardHeight: CGFloat) -> some View {
+        VStack(spacing: 10) {
+            Button(action: { focusOnDiscoveryRadius() }) {
+                MapControlButton(
+                    systemImage: "location.fill",
+                    accessibilityLabel: isUsingTestLocation ? "Center testing location" : "Center current location"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button(action: showJapanOverview) {
+                MapControlButton(
+                    systemImage: "globe.asia.australia.fill",
+                    accessibilityLabel: "Explore Japan"
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+        .padding(.trailing, 16)
+        .padding(.bottom, showsRecommendations ? cardHeight + 34 : 20)
         .animation(.smooth(duration: 0.3), value: showsRecommendations)
     }
 
@@ -199,24 +214,22 @@ struct SpotMapView: View {
             Map(position: $cameraPosition, interactionModes: [.pan, .zoom, .rotate]) {
                 if let userLocation = locationProvider.location {
                     MapCircle(center: userLocation.coordinate, radius: selectedRadius.meters)
-                        .foregroundStyle(SpotitStyle.purple.opacity(0.045))
+                        .foregroundStyle(SpotitStyle.purple.opacity(0.035))
                     MapCircle(center: userLocation.coordinate, radius: selectedRadius.meters)
                         .foregroundStyle(.clear)
                         .stroke(
-                            SpotitStyle.purple.opacity(0.72),
-                            style: StrokeStyle(lineWidth: 1.8, dash: [7, 6])
+                            SpotitStyle.purple.opacity(0.76),
+                            style: StrokeStyle(lineWidth: 1.8, dash: [6, 5])
                         )
                 }
 
-                ForEach(nearYouRecommendations.filter { $0.id != selectedRecommendationID }) { recommendation in
+                ForEach(visibleRecommendations.filter { $0.id != selectedRecommendationID }) { recommendation in
                     Annotation(
                         recommendation.spot.name,
                         coordinate: recommendation.spot.location.coordinate,
                         anchor: .center
                     ) {
-                        Button {
-                            selectRecommendation(recommendation)
-                        } label: {
+                        Button { selectedRecommendationID = recommendation.id } label: {
                             MapRecommendationAnnotation(
                                 symbolName: recommendation.spot.category.symbolName,
                                 isSelected: false,
@@ -235,9 +248,7 @@ struct SpotMapView: View {
                         coordinate: recommendation.spot.location.coordinate,
                         anchor: .center
                     ) {
-                        Button {
-                            selectRecommendation(recommendation)
-                        } label: {
+                        Button { openRecommendation(recommendation) } label: {
                             MapRecommendationAnnotation(
                                 symbolName: recommendation.spot.category.symbolName,
                                 isSelected: true,
@@ -245,22 +256,7 @@ struct SpotMapView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .accessibilityHint("Selected recommendation")
-                    }
-                    .annotationTitles(.hidden)
-                }
-
-                ForEach(savedFoodStore.spots.filter { !nearbyRecommendationIDs.contains($0.id) }) { spot in
-                    Annotation(spot.name, coordinate: spot.location.coordinate, anchor: .center) {
-                        Button { selectedFoodSpot = spot } label: {
-                            MapRecommendationAnnotation(
-                                symbolName: "heart.fill",
-                                isSelected: false,
-                                isSaved: true
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityHint("Opens saved place details")
+                        .accessibilityHint("Opens the selected recommendation")
                     }
                     .annotationTitles(.hidden)
                 }
@@ -326,11 +322,9 @@ struct SpotMapView: View {
         max(visibleRegion.span.latitudeDelta, visibleRegion.span.longitudeDelta) > 2.5
     }
 
-    private func selectRecommendation(_ recommendation: RankedFoodSpot) {
-        withAnimation(.spring(response: 0.34, dampingFraction: 0.78)) {
-            selectedRecommendationID = recommendation.id
-        }
-        focus(on: recommendation)
+    private func openRecommendation(_ recommendation: RankedFoodSpot) {
+        selectedRecommendationID = recommendation.id
+        selectedFoodSpot = recommendation.spot
     }
 
     private func focusOnDiscoveryRadius(animated: Bool = true) {
@@ -340,18 +334,18 @@ struct SpotMapView: View {
         let longitudeRadius = latitudeRadius / max(cos(location.latitude * .pi / 180), 0.2)
         let region = MKCoordinateRegion(
             center: CLLocationCoordinate2D(
-                latitude: location.latitude - latitudeRadius * 0.30,
+                latitude: location.latitude - latitudeRadius * 0.18,
                 longitude: location.longitude
             ),
             span: MKCoordinateSpan(
-                latitudeDelta: max(latitudeRadius * 2.75, 0.006),
-                longitudeDelta: max(longitudeRadius * 2.75, 0.006)
+                latitudeDelta: max(latitudeRadius * 2.9, 0.006),
+                longitudeDelta: max(longitudeRadius * 2.9, 0.006)
             )
         )
 
         selectedDestinationID = nil
         if animated {
-            withAnimation(.smooth(duration: 0.62)) { cameraPosition = .region(region) }
+            withAnimation(.smooth(duration: 0.56)) { cameraPosition = .region(region) }
         } else {
             cameraPosition = .region(region)
         }
@@ -363,14 +357,17 @@ struct SpotMapView: View {
         let spot = recommendation.spot.location
         let latitudeDifference = abs(spot.latitude - userLocation.latitude)
         let longitudeDifference = abs(spot.longitude - userLocation.longitude)
-        let latitudeSpan = max(latitudeDifference * 2.8, 0.006)
-        let longitudeSpan = max(longitudeDifference * 2.8, 0.006)
+        let latitudeSpan = max(latitudeDifference * 2.8, 0.007)
+        let longitudeSpan = max(longitudeDifference * 2.8, 0.007)
+
+        // Shift the geographic center south so the selected place sits in the
+        // open map band between the top controls and recommendation carousel.
         let center = CLLocationCoordinate2D(
-            latitude: (spot.latitude + userLocation.latitude) / 2 - latitudeSpan * 0.10,
+            latitude: spot.latitude - latitudeSpan * 0.17,
             longitude: (spot.longitude + userLocation.longitude) / 2
         )
 
-        withAnimation(.smooth(duration: 0.42)) {
+        withAnimation(.smooth(duration: 0.40)) {
             cameraPosition = .region(
                 MKCoordinateRegion(
                     center: center,
@@ -446,6 +443,7 @@ struct SpotMapView: View {
 private enum RecommendationRadius: String, CaseIterable, Identifiable {
     case veryClose
     case close
+    case tenMinuteWalk
     case oneKilometer
     case oneAndHalfKilometers
     case twoKilometers
@@ -457,6 +455,7 @@ private enum RecommendationRadius: String, CaseIterable, Identifiable {
         switch self {
         case .veryClose: 250
         case .close: 500
+        case .tenMinuteWalk: 800
         case .oneKilometer: 1_000
         case .oneAndHalfKilometers: 1_500
         case .twoKilometers: 2_000
@@ -468,6 +467,7 @@ private enum RecommendationRadius: String, CaseIterable, Identifiable {
         switch self {
         case .veryClose: "250 m"
         case .close: "500 m"
+        case .tenMinuteWalk: "10 min"
         case .oneKilometer: "1 km"
         case .oneAndHalfKilometers: "1.5 km"
         case .twoKilometers: "2 km"

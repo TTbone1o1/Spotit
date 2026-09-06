@@ -137,6 +137,7 @@ struct FoodSpot: Identifiable, Codable, Hashable {
 final class NearbyFoodProvider: ObservableObject {
     @Published private(set) var spots: [FoodSpot] = []
     @Published private(set) var sections: [FoodRecommendationSection] = []
+    @Published private(set) var justOutsideRadiusCount = 0
     @Published private(set) var isSearching = false
 
     private let recommendationService: FoodRecommendationService
@@ -201,6 +202,10 @@ final class NearbyFoodProvider: ObservableObject {
             radiusMeters: radiusMeters
         )
         spots = sections.first(where: { $0.kind == .nearYou })?.items.map(\.spot) ?? []
+        justOutsideRadiusCount = candidates.filter { spot in
+            let distance = spot.distance(from: location)
+            return distance > radiusMeters && distance <= radiusMeters * 1.35
+        }.count
     }
 
     private static func searchMapKit(
