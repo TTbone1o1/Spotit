@@ -13,26 +13,29 @@ struct FoodSpotImageView: View {
     var snapshotSize = CGSize(width: 800, height: 500)
 
     var body: some View {
-        Group {
-            if let imageURL = spot.imageURLs.first {
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .empty:
-                        loadingPlaceholder
-                    case .failure:
-                        LookAroundPlaceImage(spot: spot, snapshotSize: snapshotSize)
-                    @unknown default:
-                        placeholder
+        GeometryReader { geometry in
+            Group {
+                if let imageURL = spot.imageURLs.first {
+                    AsyncImage(url: imageURL) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .empty:
+                            loadingPlaceholder
+                        case .failure:
+                            LookAroundPlaceImage(spot: spot, snapshotSize: snapshotSize)
+                        @unknown default:
+                            placeholder
+                        }
                     }
+                } else {
+                    LookAroundPlaceImage(spot: spot, snapshotSize: snapshotSize)
                 }
-            } else {
-                LookAroundPlaceImage(spot: spot, snapshotSize: snapshotSize)
             }
+            // Crop the image inside its container without letting its aspect ratio widen the layout.
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 
@@ -153,26 +156,28 @@ struct FoodSpotDetailView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    titleBlock
-                        .padding(.horizontal, 20)
+            GeometryReader { geometry in
+                let contentWidth = max(0, geometry.size.width - 40)
+                let imageHeight = min(contentWidth * 0.8, geometry.size.height * 0.45, 320)
 
-                    imageGallery
-                        .padding(.horizontal, 20)
-
+                ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
+                        titleBlock
+                        imageGallery(size: CGSize(width: contentWidth, height: imageHeight))
                         summaryBlock
                         locationMap
                         detailsBlock
                         directionsButton
                     }
+                    .frame(width: contentWidth, alignment: .leading)
                     .padding(.horizontal, 20)
+                    .padding(.top, 12)
                     .padding(.bottom, 32)
                 }
-                .padding(.top, 12)
+                .frame(width: geometry.size.width, height: geometry.size.height)
             }
             .background(SpotitStyle.warmBackground)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -207,7 +212,7 @@ struct FoodSpotDetailView: View {
     }
 
     @ViewBuilder
-    private var imageGallery: some View {
+    private func imageGallery(size: CGSize) -> some View {
         if spot.imageURLs.count > 1 {
             TabView {
                 ForEach(spot.imageURLs, id: \.self) { imageURL in
@@ -218,15 +223,16 @@ struct FoodSpotDetailView: View {
                             FoodSpotImageView(spot: spot)
                         }
                     }
+                    .frame(width: size.width, height: size.height)
                     .clipped()
                 }
             }
             .tabViewStyle(.page)
-            .frame(height: 286)
+            .frame(width: size.width, height: size.height)
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         } else {
             FoodSpotImageView(spot: spot, cornerRadius: 24)
-                .frame(height: 286)
+                .frame(width: size.width, height: size.height)
         }
     }
 
@@ -238,46 +244,35 @@ struct FoodSpotDetailView: View {
                 .foregroundStyle(SpotitStyle.secondaryText)
 
             Text(spot.name)
-                .font(.system(size: 32, weight: .bold))
+                .font(.largeTitle.bold())
                 .foregroundStyle(SpotitStyle.ink)
+                .fixedSize(horizontal: false, vertical: true)
 
             if isWorthTheWalk {
                 WorthTheWalkBadge()
             }
 
-            HStack(spacing: 8) {
-                if let rating = spot.rating {
-                    Label(
-                        rating.formatted(.number.precision(.fractionLength(1))),
-                        systemImage: "star.fill"
-                    )
-                    .foregroundStyle(SpotitStyle.ink)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    ratingAndCategory
                 }
+                .fixedSize(horizontal: true, vertical: false)
 
-                if let reviewCount = spot.reviewCount {
-                    Text("(\(reviewCount.formatted(.number.notation(.compactName))))")
+                VStack(alignment: .leading, spacing: 8) {
+                    ratingAndCategory
                 }
-
-                if spot.rating != nil { Text("·") }
-                Text(spot.category.title)
             }
             .font(.subheadline)
             .foregroundStyle(SpotitStyle.secondaryText)
 
-            HStack(spacing: 10) {
-                if let distance, let walkingMinutes {
-                    Label("\(walkingMinutes) min walk", systemImage: "figure.walk")
-                    Text("·")
-                    Text(Self.distanceText(distance))
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    visitMetadata
                 }
-                if let priceLevel = spot.priceLevel {
-                    Text("·")
-                    Text(Self.priceText(priceLevel))
-                }
-                if let isOpen = spot.isOpen {
-                    Text("·")
-                    Text(isOpen ? "Open" : "Closed")
-                        .foregroundStyle(isOpen ? .green : .red)
+                .fixedSize(horizontal: true, vertical: false)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    visitMetadata
                 }
             }
             .font(.subheadline.weight(.semibold))
@@ -285,17 +280,51 @@ struct FoodSpotDetailView: View {
         }
     }
 
+    @ViewBuilder
+    private var ratingAndCategory: some View {
+        if let rating = spot.rating {
+            Label {
+                HStack(spacing: 4) {
+                    Text(rating.formatted(.number.precision(.fractionLength(1))))
+                        .foregroundStyle(SpotitStyle.ink)
+                    if let reviewCount = spot.reviewCount {
+                        Text("(\(reviewCount.formatted(.number.notation(.compactName))))")
+                    }
+                }
+            } icon: {
+                Image(systemName: "star.fill")
+                    .foregroundStyle(SpotitStyle.ink)
+            }
+        }
+        Text(spot.category.title)
+    }
+
+    @ViewBuilder
+    private var visitMetadata: some View {
+        if let distance, let walkingMinutes {
+            Label("\(walkingMinutes) min walk · \(Self.distanceText(distance))", systemImage: "figure.walk")
+        }
+        if let priceLevel = spot.priceLevel {
+            Text(Self.priceText(priceLevel))
+        }
+        if let isOpen = spot.isOpen {
+            Text(isOpen ? "Open" : "Closed")
+                .foregroundStyle(isOpen ? .green : .red)
+        }
+    }
+
     private var summaryBlock: some View {
         Text(spot.summary ?? "A nearby \(spot.category.title.lowercased()) option in \(spot.neighborhood ?? "Japan").")
-            .font(.system(size: 16, weight: .regular))
+            .font(.body)
             .foregroundStyle(SpotitStyle.secondaryText)
             .lineSpacing(4)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var detailsBlock: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Details")
-                .font(.system(size: 21, weight: .bold))
+                .font(.title3.bold())
                 .foregroundStyle(SpotitStyle.ink)
 
             if let address = spot.address, !address.isEmpty {
@@ -350,10 +379,10 @@ struct FoodSpotDetailView: View {
     private var directionsButton: some View {
         Button(action: openDirections) {
             Label("Walk there", systemImage: "figure.walk")
-                .font(.system(size: 17, weight: .bold))
+                .font(.headline)
                 .foregroundStyle(SpotitStyle.warmBackground)
                 .frame(maxWidth: .infinity)
-                .frame(height: 56)
+                .padding(.vertical, 17)
                 .background(SpotitStyle.ink, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -399,6 +428,7 @@ private struct DetailRow: View {
                 Text(value)
                     .font(.subheadline)
                     .foregroundStyle(SpotitStyle.ink)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
