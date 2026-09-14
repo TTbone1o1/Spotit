@@ -379,6 +379,7 @@ struct DiscoveryRecommendationCard: View {
             .onTapGesture(perform: open)
         }
         .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("recommendation.card.\(recommendation.id)")
         .accessibilityHint("Opens place details")
     }
 
@@ -421,21 +422,24 @@ struct SpotitBottomTabBar: View {
                         Image(systemName: tab.symbolName)
                             .font(.system(size: 23, weight: .semibold))
                         Text(tab.rawValue)
-                            .font(.system(size: 11.5, weight: .semibold))
+                            .font(.system(size: 12.5, weight: .semibold))
                     }
-                    .foregroundStyle(selection == tab ? SpotitStyle.purple : Color.secondary.opacity(0.72))
+                    .foregroundStyle(selection == tab ? SpotitStyle.purple : SpotitStyle.secondaryText)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 62)
+                    .frame(height: 72)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("spotit.tab.\(tab.rawValue.lowercased())")
                 .accessibilityAddTraits(selection == tab ? .isSelected : [])
             }
         }
-        .background(.regularMaterial)
-        .overlay(alignment: .top) {
-            Rectangle().fill(Color.primary.opacity(0.055)).frame(height: 0.5)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 27, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 27, style: .continuous)
+                .strokeBorder(.white.opacity(0.25), lineWidth: 0.75)
         }
+        .shadow(color: .black.opacity(0.10), radius: 14, y: 5)
     }
 }
 

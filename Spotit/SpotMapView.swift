@@ -10,6 +10,7 @@ struct SpotMapView: View {
     @State private var selectedDestinationID: String?
     @State private var selectedRecommendationID: String?
     @State private var showsRecommendations = true
+    @State private var carouselPresentation: CarouselPresentationState = .expanded
     @State private var cameraPosition: MapCameraPosition = .region(Self.harajukuRegion)
     @State private var visibleRegion = Self.harajukuRegion
     @State private var selectedRadius: RecommendationRadius = .tenMinuteWalk
@@ -75,20 +76,24 @@ struct SpotMapView: View {
                 spotitMap
                 topControls
 
-                if showsRecommendations {
-                    RecommendationCarousel(
-                        recommendations: visibleRecommendations,
-                        selectedID: $selectedRecommendationID,
-                        worthTheWalkIDs: worthTheWalkIDs,
-                        isLoading: selectedTab == .discover && nearbyFoodProvider.isSearching,
-                        emptyTitle: selectedTab == .saved ? "Nothing saved yet." : "Nothing worth the detour yet.",
-                        isSaved: savedFoodStore.contains,
-                        open: openRecommendation,
-                        toggleSaved: savedFoodStore.toggle
-                    )
-                    .frame(height: cardHeight)
+                if showsRecommendations || carouselPresentation == .collapsed {
+                    CollapsibleRecommendationCarousel(
+                        presentation: $carouselPresentation,
+                        cardHeight: cardHeight
+                    ) {
+                        RecommendationCarousel(
+                            recommendations: visibleRecommendations,
+                            selectedID: $selectedRecommendationID,
+                            worthTheWalkIDs: worthTheWalkIDs,
+                            isLoading: selectedTab == .discover && nearbyFoodProvider.isSearching,
+                            emptyTitle: selectedTab == .saved ? "Nothing saved yet." : "Nothing worth the detour yet.",
+                            isSaved: savedFoodStore.contains,
+                            open: openRecommendation,
+                            toggleSaved: savedFoodStore.toggle
+                        )
+                    }
                     .frame(maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, 18)
+                    .padding(.bottom, 16)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
@@ -98,6 +103,8 @@ struct SpotMapView: View {
         .background(SpotitStyle.warmBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             SpotitBottomTabBar(selection: $selectedTab)
+                .padding(.horizontal, 18)
+                .padding(.bottom, 8)
         }
         .onAppear {
             locationProvider.start()
@@ -115,9 +122,20 @@ struct SpotMapView: View {
             selectedRecommendationID = nil
             focusOnDiscoveryRadius()
         }
+        .onChange(of: carouselPresentation) { _, presentation in
+            guard presentation == .expanded, !showsRecommendations else { return }
+            // Keep the grabber usable after exploring at a national zoom level.
+            // Restoring returns to the selected place without resetting it.
+            if let selectedRecommendation {
+                focus(on: selectedRecommendation)
+            } else {
+                focusOnDiscoveryRadius()
+            }
+        }
         .onChange(of: selectedTab) { _, _ in
             searchText = ""
             selectedRecommendationID = visibleRecommendations.first?.id
+            carouselPresentation = .expanded
             if selectedTab == .discover { focusOnDiscoveryRadius() }
         }
         .onChange(of: visibleRecommendations.map(\.id)) { _, ids in
@@ -205,8 +223,9 @@ struct SpotMapView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         .padding(.trailing, 16)
-        .padding(.bottom, showsRecommendations ? cardHeight + 34 : 20)
+        .padding(.bottom, showsRecommendations && carouselPresentation == .expanded ? cardHeight + 34 : 20)
         .animation(.smooth(duration: 0.3), value: showsRecommendations)
+        .animation(CarouselPresentationState.settleAnimation, value: carouselPresentation)
     }
 
     private var spotitMap: some View {
@@ -229,7 +248,7 @@ struct SpotMapView: View {
                         coordinate: recommendation.spot.location.coordinate,
                         anchor: .center
                     ) {
-                        Button { selectedRecommendationID = recommendation.id } label: {
+                        Button { selectRecommendationFromMap(recommendation) } label: {
                             MapRecommendationAnnotation(
                                 symbolName: recommendation.spot.category.symbolName,
                                 isSelected: false,
@@ -237,6 +256,8 @@ struct SpotMapView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(recommendation.spot.name)
+                        .accessibilityIdentifier("recommendation.marker.\(recommendation.id)")
                         .accessibilityHint("Selects this recommendation")
                     }
                     .annotationTitles(.hidden)
@@ -248,7 +269,13 @@ struct SpotMapView: View {
                         coordinate: recommendation.spot.location.coordinate,
                         anchor: .center
                     ) {
-                        Button { openRecommendation(recommendation) } label: {
+                        Button {
+                            if carouselPresentation == .collapsed {
+                                selectRecommendationFromMap(recommendation)
+                            } else {
+                                openRecommendation(recommendation)
+                            }
+                        } label: {
                             MapRecommendationAnnotation(
                                 symbolName: recommendation.spot.category.symbolName,
                                 isSelected: true,
@@ -256,7 +283,9 @@ struct SpotMapView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .accessibilityHint("Opens the selected recommendation")
+                        .accessibilityLabel(recommendation.spot.name)
+                        .accessibilityIdentifier("recommendation.marker.\(recommendation.id)")
+                        .accessibilityHint(carouselPresentation == .collapsed ? "Shows this recommendation" : "Opens the selected recommendation")
                     }
                     .annotationTitles(.hidden)
                 }
@@ -325,6 +354,13 @@ struct SpotMapView: View {
     private func openRecommendation(_ recommendation: RankedFoodSpot) {
         selectedRecommendationID = recommendation.id
         selectedFoodSpot = recommendation.spot
+    }
+
+    private func selectRecommendationFromMap(_ recommendation: RankedFoodSpot) {
+        selectedRecommendationID = recommendation.id
+        withAnimation(CarouselPresentationState.settleAnimation) {
+            carouselPresentation = .expanded
+        }
     }
 
     private func focusOnDiscoveryRadius(animated: Bool = true) {
