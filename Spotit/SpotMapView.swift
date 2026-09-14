@@ -16,7 +16,7 @@ struct SpotMapView: View {
     @State private var selectedFoodSpot: FoodSpot?
     @State private var selectedTab: SpotitHomeTab = .discover
     @State private var searchText = ""
-    @StateObject private var locationProvider = LocationProvider(simulatesHarajuku: true)
+    @ObservedObject var locationProvider: LocationProvider
     @StateObject private var nearbyFoodProvider = NearbyFoodProvider()
     @StateObject private var savedFoodStore = SavedFoodStore()
 
@@ -506,5 +506,5 @@ struct GeoPoint: Codable, Hashable {
 }
 
 #Preview {
-    SpotMapView()
+    SpotMapView(locationProvider: LocationProvider(simulatesHarajuku: true))
 }

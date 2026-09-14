@@ -9,9 +9,12 @@ import CoreLocation
 @MainActor
 final class LocationProvider: NSObject, ObservableObject {
     @Published private(set) var location: GeoPoint?
+    @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    @Published private(set) var isRequestingAuthorization = false
 
     private let manager = CLLocationManager()
     private let simulatesHarajuku: Bool
+    private var hasStarted = false
 
     var isSimulatingLocation: Bool { simulatesHarajuku }
 
@@ -24,6 +27,7 @@ final class LocationProvider: NSObject, ObservableObject {
 
         super.init()
 
+        authorizationStatus = manager.authorizationStatus
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.distanceFilter = kCLDistanceFilterNone
@@ -32,12 +36,34 @@ final class LocationProvider: NSObject, ObservableObject {
     func start() {
         guard !simulatesHarajuku else { return }
 
-        switch manager.authorizationStatus {
+        hasStarted = true
+        refreshAuthorizationStatus()
+        if authorizationStatus == .notDetermined {
+            requestAuthorization()
+        }
+    }
+
+    // Authorization is real even when Discover uses the development location.
+    // Both screens share this manager; only an explicit action requests access.
+    func requestAuthorization() {
+        refreshAuthorizationStatus()
+        guard authorizationStatus == .notDetermined, !isRequestingAuthorization else { return }
+
+        isRequestingAuthorization = true
+        manager.requestWhenInUseAuthorization()
+    }
+
+    func refreshAuthorizationStatus() {
+        authorizationStatus = manager.authorizationStatus
+        if authorizationStatus != .notDetermined {
+            isRequestingAuthorization = false
+        }
+
+        guard hasStarted, !simulatesHarajuku else { return }
+        switch authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
             manager.startUpdatingLocation()
-        case .notDetermined:
-            manager.requestWhenInUseAuthorization()
-        case .denied, .restricted:
+        case .notDetermined, .denied, .restricted:
             manager.stopUpdatingLocation()
         @unknown default:
             break
@@ -52,18 +78,7 @@ final class LocationProvider: NSObject, ObservableObject {
 
 extension LocationProvider: @preconcurrency CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        guard !simulatesHarajuku else { return }
-
-        switch manager.authorizationStatus {
-        case .authorizedAlways, .authorizedWhenInUse:
-            manager.startUpdatingLocation()
-        case .denied, .restricted:
-            manager.stopUpdatingLocation()
-        case .notDetermined:
-            break
-        @unknown default:
-            break
-        }
+        refreshAuthorizationStatus()
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
